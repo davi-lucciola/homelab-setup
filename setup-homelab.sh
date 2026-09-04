@@ -103,7 +103,6 @@ fi
 if ! groups "$USER" | grep &>/dev/null '\bdocker\b'; then
     echo -e "${GREEN}Adicionando $USER ao grupo docker...${NC}"
     sudo usermod -aG docker "$USER"
-    echo -e "${GREEN}Nota: Pode ser necessário fazer logoff e login novamente para aplicar as permissões.${NC}"
 else
     echo "Usuário '$USER' já pertence ao grupo docker."
 fi
@@ -116,12 +115,7 @@ sudo systemctl start docker
 # 6. Arquivo de ambiente local
 # ==============================================================================
 echo -e "${BLUE}==> Verificando .env...${NC}"
-if [[ ! -f "${HOMELAB_ROOT}/.env" ]]; then
-    echo -e "${GREEN}Criando .env a partir de .env.example...${NC}"
-    cp "${HOMELAB_ROOT}/.env.example" "${HOMELAB_ROOT}/.env"
-else
-    echo ".env já existe; não sobrescrevendo."
-fi
+prompt_homelab_env
 ensure_dockge_stacks_dir
 
 # ==============================================================================
@@ -163,7 +157,28 @@ run_migrations() {
 
 run_migrations
 
+# ==============================================================================
+# 8. Stacks
+# ==============================================================================
+run_stacks_up() {
+    local stacks_up="${HOMELAB_ROOT}/scripts/stacks-up.sh"
+    echo -e "${BLUE}==> Subindo stacks...${NC}"
+    if docker info >/dev/null 2>&1; then
+        "${stacks_up}"
+        return
+    fi
+    if sg docker -c true >/dev/null 2>&1; then
+        echo -e "${GREEN}Docker ainda sem permissão nesta sessão; usando grupo docker (sg)...${NC}"
+        sg docker -c "$(printf '%q' "${stacks_up}")"
+        return
+    fi
+    echo "Não foi possível falar com o Docker sem sudo." >&2
+    echo "Faça logoff/login (ou newgrp docker) e rode ./scripts/stacks-up.sh" >&2
+    exit 1
+}
+
+run_stacks_up
+
 echo -e "${GREEN}======================================================================${NC}"
-echo -e "${GREEN} Configuração concluída com sucesso! ${NC}"
-echo -e "${GREEN} Próximo passo: conferir .env e rodar ./scripts/stacks-up.sh ${NC}"
+echo -e "${GREEN} Configuração concluída; stacks no ar. ${NC}"
 echo -e "${GREEN}======================================================================${NC}"

@@ -20,13 +20,13 @@ flowchart LR
   traefik --> admin
 ```
 
-O bootstrap em [`setup-homelab.sh`](setup-homelab.sh) instala dependências, configura UFW e Docker, cria `.env` se faltar e aplica as migrações de infra.
+O bootstrap em [`setup-homelab.sh`](setup-homelab.sh) instala dependências, configura UFW e Docker, pede o `.env` (Enter = padrão), aplica as migrações e sobe as stacks.
 
 ## Pré-requisitos
 
 - Debian ou Ubuntu
 - Acesso sudo
-- IP LAN do host (padrão em [`.env.example`](.env.example): `192.168.15.42`)
+- IP LAN do host (detectado na instalação; fallback em [`.env.example`](.env.example): `192.168.15.42`)
 
 ## Início rápido
 
@@ -40,24 +40,17 @@ O script é idempotente. Ele:
 2. Configura o UFW (22/80/443) e ativa o firewall se ainda estiver inativo
 3. Instala Docker Engine e Compose pelo repositório oficial, se ainda não existirem
 4. Adiciona o usuário atual ao grupo `docker`
-5. Copia `.env.example` → `.env` somente se `.env` ainda não existir; preenche `DOCKGE_STACKS_DIR` com o path absoluto de `stacks/`
+5. Cria `.env` se faltar e pergunta `HOMELAB_IP` e `PIHOLE_PASSWORD` (Enter mantém o padrão); preenche `DOCKGE_STACKS_DIR` com o path absoluto de `stacks/`
 6. Aplica migrações até a versão em [`VERSION`](VERSION)
+7. Roda [`scripts/stacks-up.sh`](scripts/stacks-up.sh) (Pi-hole → DNS check → Traefik → demais)
 
-Em seguida, ajuste o `.env`:
+Sem TTY (pipe/CI) o prompt é pulado e os padrões são gravados. Se o usuário acabou de entrar no grupo `docker`, o setup tenta `sg docker` para subir os containers na mesma sessão. Se isso falhar, faça logoff/login (ou `newgrp docker`) e rode `./scripts/stacks-up.sh`.
 
-```bash
-# IP LAN deste host e senha do admin do Pi-hole
-HOMELAB_IP=192.168.15.42
-PIHOLE_PASSWORD=admin
-```
-
-Se o script acabou de adicionar seu usuário ao grupo `docker`, faça logoff e login (ou `newgrp docker`) antes de subir os containers:
+O helper garante a rede `proxy`, sobe Pi-hole primeiro, roda [`scripts/check-dns.sh`](scripts/check-dns.sh) e só então Traefik e as demais stacks. `docker compose up -d` na raiz **não** sobe serviços (só a rede). Para só recriar as stacks depois do setup:
 
 ```bash
 ./scripts/stacks-up.sh
 ```
-
-O helper garante a rede `proxy`, sobe Pi-hole primeiro, roda [`scripts/check-dns.sh`](scripts/check-dns.sh) e só então Traefik e as demais stacks. `docker compose up -d` na raiz **não** sobe serviços (só a rede).
 
 Para só validar o DNS:
 
@@ -91,7 +84,7 @@ Definidas em [`.env.example`](.env.example) e lidas pelo Compose:
 | `PIHOLE_PASSWORD`   | Senha do admin do Pi-hole                           |
 | `DOCKGE_STACKS_DIR` | Path absoluto de `stacks/` (host === container)     |
 
-`.env` está no [`.gitignore`](.gitignore). O setup não sobrescreve um `.env` já existente; só preenche `DOCKGE_STACKS_DIR` se a chave estiver vazia ou ausente.
+`.env` está no [`.gitignore`](.gitignore). O setup pergunta `HOMELAB_IP` e `PIHOLE_PASSWORD` a cada execução interativa (Enter mantém o valor atual ou o padrão); `DOCKGE_STACKS_DIR` só é preenchido se a chave estiver vazia ou ausente.
 
 ## Migrações de infra
 
@@ -112,7 +105,7 @@ Para uma v4: crie `scripts/migrate/v4.sh` e incremente `VERSION` para `4`. Na pr
 
 ```
 .
-├── setup-homelab.sh          # Bootstrap do host + migrações
+├── setup-homelab.sh          # Bootstrap do host + .env + migrações + stacks
 ├── compose.yaml              # Rede proxy (sem include)
 ├── VERSION                   # Versão alvo da infra
 ├── .env.example
@@ -123,7 +116,7 @@ Para uma v4: crie `scripts/migrate/v4.sh` e incremente `VERSION` para `4`. Na pr
 └── scripts/
     ├── stacks-up.sh          # Sobe as stacks (Pi-hole primeiro)
     ├── check-dns.sh          # UDP/TCP, wildcard, LAN, forwarding
-    ├── lib/                  # Banco local .homelab/state.json
+    ├── lib/                  # .env e .homelab/state.json
     └── migrate/              # v1.sh, v2.sh, v3.sh, …
 ```
 
