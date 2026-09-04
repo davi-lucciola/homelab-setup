@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # v1 → v2: DNS local (Pi-hole) no host.
-# Idempotente. Não cria nem remove a rede Docker 'proxy'.
+# Idempotente. A rede Docker `proxy` fica a cargo do compose.yaml da raiz.
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'

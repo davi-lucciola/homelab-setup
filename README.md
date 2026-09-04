@@ -1,6 +1,6 @@
 # Homelab Setup
 
-Homelab em Docker Compose para Debian/Ubuntu. Traefik, Pi-hole e Portainer compartilham a rede `proxy`. O Pi-hole resolve `*.homelab.internal` para o IP LAN do host (`HOMELAB_IP`).
+Homelab em Docker Compose para Debian/Ubuntu. Traefik, Pi-hole e Portainer compartilham a rede `proxy`, criada pelo [`compose.yaml`](compose.yaml) da raiz. O Pi-hole resolve `*.homelab.internal` para o IP LAN do host (`HOMELAB_IP`).
 
 ## Arquitetura
 
@@ -59,11 +59,13 @@ docker compose up -d
 
 ## Serviços e acesso
 
-| Serviço   | Host Traefik                    | Portas no host     | Observação                                      |
-|-----------|---------------------------------|--------------------|-------------------------------------------------|
-| Traefik   | `traefik.homelab.internal`      | 80, 443, 8080      | Dashboard também em `:8080` (`api.insecure`)    |
-| Pi-hole   | `pihole.homelab.internal`       | 53 TCP/UDP, 8053   | Admin em `:8053`; senha `PIHOLE_PASSWORD`       |
-| Portainer | `portainer.homelab.internal`    | 9000, 9443         | Volume `portainer_data`                         |
+O Traefik escuta na porta 80 e encaminha pelo `Host`. As portas publicadas no host continuam como fallback.
+
+| Serviço   | Padrão (porta 80)                                      | Fallback                         | Observação                                      |
+|-----------|--------------------------------------------------------|----------------------------------|-------------------------------------------------|
+| Traefik   | `http://traefik.homelab.internal/`                     | `:8080`                          | Redirect nativo para `/dashboard/`; `api.insecure` |
+| Pi-hole   | `http://pihole.homelab.internal/admin/`                | `:8053`                          | `/` redireciona para `/admin/`; senha `PIHOLE_PASSWORD` |
+| Portainer | `http://portainer.homelab.internal/`                   | `:9000` (HTTPS `:9443`)          | Volume `portainer_data`                         |
 
 O Pi-hole publica um wildcard DNS (`address=/homelab.internal/${HOMELAB_IP}`) em [`stacks/pihole/compose.yaml`](stacks/pihole/compose.yaml). Qualquer nome em `*.homelab.internal` resolve para o IP do host.
 
@@ -124,6 +126,6 @@ UFW com default deny incoming / allow outgoing.
 
 ## Notas de segurança
 
-- O dashboard do Traefik está em modo `insecure` na porta 8080. Use só na LAN.
+- O dashboard do Traefik está em modo `insecure` na porta 80 (`traefik.homelab.internal`) e na 8080. Use só na LAN.
 - Traefik monta o Docker socket em leitura (`:ro`); Portainer precisa de escrita.
 - Não commite `.env`. Troque a senha default do Pi-hole antes de expor o host na rede.
