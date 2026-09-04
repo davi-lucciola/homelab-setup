@@ -1,0 +1,37 @@
+services:
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "5001:5001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data
+      # Host path === container path (obrigatório para o Dockge).
+      - ${DOCKGE_STACKS_DIR}:${DOCKGE_STACKS_DIR}
+    environment:
+      - DOCKGE_STACKS_DIR=${DOCKGE_STACKS_DIR}
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.dockge.rule=Host(`dockge.homelab.internal`)"
+      - "traefik.http.routers.dockge.entrypoints=web"
+      - "traefik.http.services.dockge.loadbalancer.server.port=5001"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+
+networks:
+  proxy:
+    name: proxy
+    external: true
