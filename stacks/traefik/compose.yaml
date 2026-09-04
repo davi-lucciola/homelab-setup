@@ -30,4 +30,6 @@ services:
           memory: 64M
 
 networks:
-  proxy: {}
+  proxy:
+    name: proxy
+    external: true

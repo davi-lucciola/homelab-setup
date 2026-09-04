@@ -38,4 +38,6 @@ services:
       - "traefik.http.middlewares.pihole-admin.redirectregex.replacement=$${1}/admin/"
 
 networks:
-  proxy: {}
+  proxy:
+    name: proxy
+    external: true

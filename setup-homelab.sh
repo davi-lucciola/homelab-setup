@@ -9,6 +9,8 @@ set -euo pipefail
 HOMELAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib/state.sh
 source "${HOMELAB_ROOT}/scripts/lib/state.sh"
+# shellcheck source=scripts/lib/env.sh
+source "${HOMELAB_ROOT}/scripts/lib/env.sh"
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -23,6 +25,7 @@ sudo apt-get update -y
 # 2. Instalar dependências essenciais
 echo -e "${BLUE}==> Instalando dependências base...${NC}"
 sudo apt-get install -y \
+    bind9-dnsutils \
     ca-certificates \
     curl \
     gnupg \
@@ -119,6 +122,7 @@ if [[ ! -f "${HOMELAB_ROOT}/.env" ]]; then
 else
     echo ".env já existe; não sobrescrevendo."
 fi
+ensure_dockge_stacks_dir
 
 # ==============================================================================
 # 7. Migrações de versão da infra
@@ -161,5 +165,5 @@ run_migrations
 
 echo -e "${GREEN}======================================================================${NC}"
 echo -e "${GREEN} Configuração concluída com sucesso! ${NC}"
-echo -e "${GREEN} Próximo passo: conferir .env e rodar docker compose up -d ${NC}"
+echo -e "${GREEN} Próximo passo: conferir .env e rodar ./scripts/stacks-up.sh ${NC}"
 echo -e "${GREEN}======================================================================${NC}"

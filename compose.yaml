@@ -1,8 +1,4 @@
-include:
-  - stacks/portainer/compose.yaml
-  - stacks/traefik/compose.yaml
-  - stacks/pihole/compose.yaml
-
+# Rede compartilhada. Cada pasta em stacks/ é um projeto Compose independente.
 networks:
   proxy:
     name: proxy
