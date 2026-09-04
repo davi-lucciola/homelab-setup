@@ -6,6 +6,10 @@ set -euo pipefail
 # Testado em: Debian / Ubuntu
 # ==============================================================================
 
+HOMELAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/state.sh
+source "${HOMELAB_ROOT}/scripts/lib/state.sh"
+
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
@@ -22,6 +26,7 @@ sudo apt-get install -y \
     ca-certificates \
     curl \
     gnupg \
+    python3 \
     ufw
 
 # ==============================================================================
@@ -104,15 +109,57 @@ fi
 sudo systemctl enable docker
 sudo systemctl start docker
 
-echo -e "${BLUE}==> Verificando rede Docker 'proxy'...${NC}"
-
-if ! sudo docker network ls --format '{{.Name}}' | grep -q "^proxy$"; then
-    echo -e "${GREEN}Criando rede Docker 'proxy'...${NC}"
-    sudo docker network create proxy
+# ==============================================================================
+# 6. Arquivo de ambiente local
+# ==============================================================================
+echo -e "${BLUE}==> Verificando .env...${NC}"
+if [[ ! -f "${HOMELAB_ROOT}/.env" ]]; then
+    echo -e "${GREEN}Criando .env a partir de .env.example...${NC}"
+    cp "${HOMELAB_ROOT}/.env.example" "${HOMELAB_ROOT}/.env"
 else
-    echo "Rede 'proxy' já existe."
+    echo ".env já existe; não sobrescrevendo."
 fi
+
+# ==============================================================================
+# 7. Migrações de versão da infra
+# ==============================================================================
+run_migrations() {
+    echo -e "${BLUE}==> Verificando migrações de infra...${NC}"
+    state_bootstrap
+
+    local target applied
+    target="$(state_get_target_version)"
+    applied="$(state_get_applied_version)"
+
+    if (( applied >= target )); then
+        echo "Infra já na versão ${applied} (alvo ${target})."
+        return
+    fi
+
+    local v script
+    for (( v = applied + 1; v <= target; v++ )); do
+        script="${HOMELAB_ROOT}/scripts/migrate/v${v}.sh"
+        if [[ ! -f "${script}" ]]; then
+            echo "Script de migração ausente: ${script}" >&2
+            exit 1
+        fi
+
+        echo -e "${BLUE}==> Aplicando migração v${v}...${NC}"
+        if bash "${script}"; then
+            state_record_migration "${v}" ok
+            echo -e "${GREEN}Migração v${v} registrada em .homelab/state.json${NC}"
+        else
+            state_record_migration "${v}" failed
+            echo "Migração v${v} falhou; applied_version permanece ${applied}." >&2
+            exit 1
+        fi
+        applied="${v}"
+    done
+}
+
+run_migrations
 
 echo -e "${GREEN}======================================================================${NC}"
 echo -e "${GREEN} Configuração concluída com sucesso! ${NC}"
+echo -e "${GREEN} Próximo passo: conferir .env e rodar docker compose up -d ${NC}"
 echo -e "${GREEN}======================================================================${NC}"

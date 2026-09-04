@@ -6,3 +6,9 @@ stacks/portainer/portainer_data/
 # Arquivos de variáveis de ambiente com senhas
 .env
 *.env
+
+# Banco local de versão da infra (por host)
+.homelab/
+
+# Cache do Python (scripts/lib/state.py)
+**/__pycache__/
