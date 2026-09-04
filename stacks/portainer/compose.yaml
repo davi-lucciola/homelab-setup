@@ -15,7 +15,7 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.homelab.local`)"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.homelab.internal`)"
       - "traefik.http.routers.portainer.entrypoints=web"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
     deploy:
