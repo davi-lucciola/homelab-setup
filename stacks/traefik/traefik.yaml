@@ -1,0 +1,21 @@
+# Configurações de logs
+log:
+  level: INFO
+
+# Pontos de entrada de tráfego
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+# Integração automática com o Docker Engine
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false # Exige label 'traefik.enable=true' para expor o container
+
+# Habilita o Dashboard nativo do Traefik
+api:
+  dashboard: true
+  insecure: true # Permite acessar o dashboard na porta 8080 em ambiente local

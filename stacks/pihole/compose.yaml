@@ -1,0 +1,32 @@
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      # Exposição da porta 80 removida (Traefik faz o roteamento na porta interna 80)
+    environment:
+      TZ: "America/Sao_Paulo"
+      WEBPASSWORD: "admin"
+      FTLCONF_LOCAL_IPV4: "192.168.15.42"
+    volumes:
+      - ./etc-pihole:/etc/pihole
+      - ./etc-dnsmasq.d:/etc/dnsmasq.d
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pihole.rule=Host(`pihole.homelab.local`)"
+      - "traefik.http.routers.pihole.entrypoints=web"
+      - "traefik.http.services.pihole.loadbalancer.server.port=80"
+
+networks:
+  proxy:
+    external: true

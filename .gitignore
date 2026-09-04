@@ -1,0 +1,8 @@
+# Volumes locais gerados pelos containers
+stacks/pihole/etc-pihole/
+stacks/pihole/etc-dnsmasq.d/
+stacks/portainer/portainer_data/
+
+# Arquivos de variáveis de ambiente com senhas
+.env
+*.env
