@@ -32,5 +32,4 @@ volumes:
     name: portainer_data
 
 networks:
-  proxy:
-    external: true
+  proxy: {}
