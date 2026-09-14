@@ -16,7 +16,7 @@ providers:
     exposedByDefault: false # Exige label 'traefik.enable=true' para expor o container
     network: proxy
 
-# Habilita o Dashboard nativo do Traefik
+# Dashboard só via router com middleware (sem api.insecure / :8080)
 api:
   dashboard: true
-  insecure: true # Permite acessar o dashboard na porta 8080 em ambiente local
+  insecure: false

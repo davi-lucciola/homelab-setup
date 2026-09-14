@@ -13,7 +13,10 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 ensure_dockge_stacks_dir
+ensure_homelab_cidr
 load_homelab_env
+write_homelab_htpasswd
+validate_homelab_env
 
 if [[ -z "${DOCKGE_STACKS_DIR:-}" ]]; then
     echo -e "${RED}DOCKGE_STACKS_DIR vazio; rode ./setup-homelab.sh ou preencha o .env${NC}" >&2

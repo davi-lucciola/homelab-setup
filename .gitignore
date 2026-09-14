@@ -6,6 +6,7 @@ stacks/dockge/data/
 # Arquivos de variáveis de ambiente com senhas
 .env
 *.env
+stacks/traefik/.htpasswd
 
 # Banco local de versão da infra (por host)
 .homelab/

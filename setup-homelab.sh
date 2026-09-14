@@ -29,6 +29,7 @@ sudo apt-get install -y \
     ca-certificates \
     curl \
     gnupg \
+    openssl \
     python3 \
     ufw
 
@@ -65,16 +66,33 @@ if ! command -v docker &> /dev/null; then
     # Cria diretório de chaves GPG com permissões estritas (padrão recente)
     sudo install -m 0755 -d /etc/apt/keyrings
 
+    # OS do repositório oficial (Debian vs Ubuntu)
+    docker_distro="ubuntu"
+    docker_codename=""
+    if [[ -f /etc/os-release ]]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        docker_codename="${VERSION_CODENAME:-}"
+        case "${ID:-}" in
+            debian) docker_distro="debian" ;;
+            ubuntu) docker_distro="ubuntu" ;;
+        esac
+    fi
+    if [[ -z "${docker_codename}" ]]; then
+        echo "VERSION_CODENAME ausente em /etc/os-release; não é possível adicionar o apt do Docker." >&2
+        exit 1
+    fi
+
     # Baixa e configura a chave GPG oficial do Docker se ainda não existir
     if [ ! -f /etc/apt/keyrings/docker.asc ]; then
-        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        sudo curl -fsSL "https://download.docker.com/linux/${docker_distro}/gpg" -o /etc/apt/keyrings/docker.asc
         sudo chmod a+r /etc/apt/keyrings/docker.asc
     fi
 
     # Adiciona o repositório oficial do Docker às fontes do APT
     echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${docker_distro} \
+      ${docker_codename} stable" | \
       sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     # Atualiza repositórios e instala os pacotes oficiais do Docker Engine
