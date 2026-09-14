@@ -76,13 +76,24 @@ container_running() {
 
 http_host() {
     local host="$1" path="$2"
+    local curl_auth=()
     local code="" i
+    if [[ -n "${HOMELAB_BASICAUTH_USER:-}" && -n "${HOMELAB_BASICAUTH_PASSWORD:-}" ]]; then
+        curl_auth=(-u "${HOMELAB_BASICAUTH_USER}:${HOMELAB_BASICAUTH_PASSWORD}")
+    fi
     for i in $(seq 1 20); do
-        code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 -H "Host: ${host}" "http://127.0.0.1${path}" || true)"
+        code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
+            "${curl_auth[@]}" -H "Host: ${host}" "http://127.0.0.1${path}" || true)"
         case "${code}" in
             200|301|302|307|308)
                 pass "HTTP Host ${host}${path} → ${code}"
                 return 0
+                ;;
+            401)
+                if [[ ${#curl_auth[@]} -eq 0 ]]; then
+                    pass "HTTP Host ${host}${path} → 401 (basicAuth no proxy)"
+                    return 0
+                fi
                 ;;
         esac
         sleep 1

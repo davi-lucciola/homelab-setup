@@ -19,12 +19,23 @@ ensure_dockge_stacks_dir() {
     _env_python ensure-stacks-dir
 }
 
+ensure_homelab_cidr() {
+    _env_python ensure-cidr
+}
+
+write_homelab_htpasswd() {
+    _env_python write-htpasswd
+}
+
+validate_homelab_env() {
+    _env_python validate
+}
+
+# Exporta só chaves conhecidas (sem source cego do .env).
 load_homelab_env() {
-    local env_file="${HOMELAB_ROOT}/.env"
-    if [[ -f "${env_file}" ]]; then
-        set -a
-        # shellcheck disable=SC1090
-        source "${env_file}"
-        set +a
+    local exported
+    exported="$(_env_python export)"
+    if [[ -n "${exported}" ]]; then
+        eval "${exported}"
     fi
 }

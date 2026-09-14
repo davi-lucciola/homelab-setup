@@ -1,17 +1,20 @@
 services:
   pihole:
     container_name: pihole
-    image: pihole/pihole:latest
+    image: pihole/pihole:2026.07.2
+    security_opt:
+      - no-new-privileges:true
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "8053:80/tcp"
+      - "127.0.0.1:53:53/tcp"
+      - "127.0.0.1:53:53/udp"
+      - "${HOMELAB_IP}:53:53/tcp"
+      - "${HOMELAB_IP}:53:53/udp"
     environment:
       TZ: "America/Sao_Paulo"
-      FTLCONF_webserver_api_password: "${PIHOLE_PASSWORD:-admin}"
-      FTLCONF_dns_listeningMode: "ALL"
+      FTLCONF_webserver_api_password: "${PIHOLE_PASSWORD}"
+      FTLCONF_dns_listeningMode: "LOCAL"
       FTLCONF_dns_domain_name: "homelab.internal"
-      FTLCONF_misc_dnsmasq_lines: "address=/homelab.internal/${HOMELAB_IP:-192.168.15.42}"
+      FTLCONF_misc_dnsmasq_lines: "address=/homelab.internal/${HOMELAB_IP}"
     volumes:
       - ./etc-pihole:/etc/pihole
       - ./etc-dnsmasq.d:/etc/dnsmasq.d
@@ -29,10 +32,11 @@ services:
       - "traefik.http.routers.pihole.rule=Host(`pihole.homelab.internal`)"
       - "traefik.http.routers.pihole.entrypoints=web"
       - "traefik.http.services.pihole.loadbalancer.server.port=80"
+      - "traefik.http.routers.pihole.middlewares=homelab-secure@docker"
       - "traefik.http.routers.pihole-root.rule=Host(`pihole.homelab.internal`) && Path(`/`)"
       - "traefik.http.routers.pihole-root.entrypoints=web"
       - "traefik.http.routers.pihole-root.service=pihole"
-      - "traefik.http.routers.pihole-root.middlewares=pihole-admin"
+      - "traefik.http.routers.pihole-root.middlewares=homelab-secure@docker,pihole-admin"
       - "traefik.http.routers.pihole-root.priority=100"
       - "traefik.http.middlewares.pihole-admin.redirectregex.regex=^(https?://[^/]+)/?$$"
       - "traefik.http.middlewares.pihole-admin.redirectregex.replacement=$${1}/admin/"
